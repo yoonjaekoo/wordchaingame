@@ -4,28 +4,17 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 import google.generativeai as genai
 
-# --- Gemini API 설정 ---
 API_KEY = "AIzaSyCrFIZ2-ip12rNcqY0UBbpXPn-rcDF5tHs"
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemma-3-27b-it')
+model = genai.GenerativeModel('gemma-3-4b-it')
 
 executor = ThreadPoolExecutor(max_workers=1)
 
-# --- Streamlit 상태 초기화 ---
-if 'user_score' not in st.session_state:
-    st.session_state.user_score = 0
-if 'gemini_score' not in st.session_state:
-    st.session_state.gemini_score = 0
-if 'current_word' not in st.session_state:
-    st.session_state.current_word = ""
-if 'used_words' not in st.session_state:
-    st.session_state.used_words = []
-if 'turn' not in st.session_state:
-    st.session_state.turn = ""
-if 'log' not in st.session_state:
-    st.session_state.log = []
+# Streamlit 상태 초기화
+for key in ['user_score','gemini_score','current_word','used_words','turn','log','word_input']:
+    if key not in st.session_state:
+        st.session_state[key] = [] if key=='log' or key=='used_words' else 0 if 'score' in key else ""
 
-# --- 끝말잇기 함수 ---
 def get_duum_equivalent(char):
     if char in ['라','래','로','뢰','루','르']: return chr(ord(char)-1024)
     elif char in ['랴','려','례','료','류']: return chr(ord(char)-512)
@@ -43,6 +32,10 @@ def is_valid_word(word):
     except:
         return False
 
+def check_chain(last_char, first_char):
+    duum = get_duum_equivalent(last_char)
+    return first_char == last_char or (duum and first_char == duum)
+
 def gemini_turn():
     last_char = st.session_state.current_word[-1] if st.session_state.current_word else ""
     duum_equiv = get_duum_equivalent(last_char)
@@ -55,8 +48,7 @@ def gemini_turn():
     candidates = re.findall(r'[가-힣]+', response.text)
     for cand in candidates:
         if cand not in st.session_state.used_words:
-            first_char = cand[0]
-            if first_char == last_char or (duum_equiv and first_char == duum_equiv):
+            if not st.session_state.current_word or check_chain(st.session_state.current_word[-1], cand[0]):
                 if is_valid_word(cand):
                     st.session_state.used_words.append(cand)
                     st.session_state.current_word = cand
@@ -75,11 +67,8 @@ def submit_word():
         st.session_state.log.append("한글만 입력해주세요.")
         return
     if st.session_state.current_word:
-        last_char = st.session_state.current_word[-1]
-        first_char = word[0]
-        duum_equiv = get_duum_equivalent(last_char)
-        if first_char != last_char and (not duum_equiv or first_char != duum_equiv):
-            st.session_state.log.append(f"끝말이 틀렸습니다! {word}는 {last_char}로 시작해야 합니다.")
+        if not check_chain(st.session_state.current_word[-1], word[0]):
+            st.session_state.log.append(f"끝말이 틀렸습니다! '{word}'는 '{st.session_state.current_word[-1]}' 또는 두음법칙 적용 글자로 시작해야 합니다.")
             st.session_state.turn = "end"
             return
     if word in st.session_state.used_words:
@@ -104,9 +93,9 @@ def reset_game():
     st.session_state.used_words = []
     st.session_state.turn = ""
     st.session_state.log = []
+    st.session_state.word_input = ""
 
-# --- Streamlit UI ---
-st.title("끝말잇기 게임 (Gemini AI)")
+st.title("끝말잇기 게임 (Gemini AI + 두음법칙)")
 
 col1, col2 = st.columns(2)
 col1.metric("사용자 점수", st.session_state.user_score)
@@ -115,7 +104,6 @@ col2.metric("Gemini 점수", st.session_state.gemini_score)
 st.text(f"현재 단어: {st.session_state.current_word}")
 
 st.text_input("단어 입력", key="word_input", on_change=submit_word)
-
 st.button("게임 초기화", on_click=reset_game)
 
 st.subheader("게임 로그")
