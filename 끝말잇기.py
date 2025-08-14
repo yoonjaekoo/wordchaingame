@@ -20,8 +20,6 @@ try:
     from IPython.display import display, clear_output
     IS_JUPYTER = True
 except ImportError:
-    import tkinter as tk
-    from tkinter import messagebox
     IS_JUPYTER = False
 
 class WordChainGame:
@@ -371,3 +369,4 @@ if __name__ == "__main__":
         root = tk.Tk()
         game = WordChainGame(root)
         root.mainloop()
+
