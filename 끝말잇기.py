@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 # --- Gemini API 설정 ---
 # API 키를 환경 변수로 설정하는 것을 권장하지만, 테스트를 위해 직접 입력합니다.
-API_KEY = "AIzaSyDw0PZ2k2wfN2f22lJUpiMLl-HbJy-rBWg"
+API_KEY = "AIzaSyCrFIZ2-ip12rNcqY0UBbpXPn-rcDF5tHs"
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemma-3-4b-it')
 
@@ -369,4 +369,5 @@ if __name__ == "__main__":
         root = tk.Tk()
         game = WordChainGame(root)
         root.mainloop()
+
 
